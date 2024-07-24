@@ -55,6 +55,11 @@ ifdef REBUILD
 FORCE_REBUILD=force_rebuild
 endif
 
+# Define paths to LLVM build and tools
+LLVM_BUILD_DIR = /home/yixue/isi-llvm/build
+OPT = $(LLVM_BUILD_DIR)/bin/opt
+CLANG = $(LLVM_BUILD_DIR)/bin/clang
+MODE = 3
 CFLAGS += -DITERATIONS=$(ITERATIONS)
 
 CORE_FILES = core_list_join core_main core_matrix core_state core_util
@@ -65,6 +70,7 @@ OUTNAME = coremark$(EXE)
 OUTFILE = $(OPATH)$(OUTNAME)
 LOUTCMD = $(OFLAG) $(OUTFILE) $(LFLAGS_END)
 OUTCMD = $(OUTFLAG) $(OUTFILE) $(LFLAGS_END)
+# OUTCMD = -o $(OUTFILE)
 
 HEADERS = coremark.h 
 CHECK_FILES = $(ORIG_SRCS) $(HEADERS)
@@ -77,17 +83,37 @@ ifdef SEPARATE_COMPILE
 $(OPATH)$(PORT_DIR):
 	$(MKDIR) $(OPATH)$(PORT_DIR)
 
-compile: $(OPATH) $(OPATH)$(PORT_DIR) $(OBJS) $(HEADERS) 
-link: compile 
-	$(LD) $(LFLAGS) $(XLFLAGS) $(OBJS) $(LOUTCMD)
+# Rule to generate LLVM IR from source
+compile: $(OPATH) $(SRCS) $(HEADERS)
+	$(CLANG) -emit-llvm -S $(CFLAGS) $(XCFLAGS) $(SRCS)
+# Apply HPSC-CFA LLVM pass
+transform: compile
+	@echo "Applying LLVM pass..."
+	$(foreach file,$(addsuffix .ll,$(CORE_FILES)), \
+		$(OPT) -S -mode=$(MODE) -passes=hpsc-cfa $(file) -o $(basename $(file))_transformed.ll;)
+
+# Rule to compile LLVM IR into executable
+link: transform
+	$(CLANG) $(addsuffix .ll,$(CORE_FILES)) $(LFLAGS) $(LOUTCMD)
+
+# compile: $(OPATH) $(OPATH)$(PORT_DIR) $(OBJS) $(HEADERS) 
+# link: compile 
+# 	$(LD) $(LFLAGS) $(XLFLAGS) $(OBJS) $(LOUTCMD)
 	
 else
 
-compile: $(OPATH) $(SRCS) $(HEADERS) 
-	$(CC) $(CFLAGS) $(XCFLAGS) $(SRCS) $(OUTCMD)
-link: compile 
-	@echo "Link performed along with compile"
+# Rule to generate LLVM IR from source
+compile: $(OPATH) $(SRCS) $(HEADERS)
+	$(CLANG) -emit-llvm -S $(CFLAGS) $(XCFLAGS) $(SRCS)
+# Apply HPSC-CFA LLVM pass
+transform: compile
+	@echo "Applying LLVM pass..."
+	$(foreach file,$(addsuffix .ll,$(CORE_FILES)), \
+		$(OPT) -S -mode=$(MODE) -passes=hpsc-cfa $(file) -o $(basename $(file))_transformed.ll;)
 
+# Rule to compile LLVM IR into executable
+link: transform
+	$(CLANG) $(addsuffix .ll,$(CORE_FILES)) $(LFLAGS) $(LOUTCMD)
 endif
 
 $(OUTFILE): $(SRCS) $(HEADERS) Makefile core_portme.mak $(EXTRA_DEPENDS) $(FORCE_REBUILD)
