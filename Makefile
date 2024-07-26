@@ -86,6 +86,7 @@ $(OPATH)$(PORT_DIR):
 # Rule to generate LLVM IR from source
 compile: $(OPATH) $(SRCS) $(HEADERS)
 	$(CLANG) -emit-llvm -S $(CFLAGS) $(XCFLAGS) $(SRCS)
+
 # Apply HPSC-CFA LLVM pass
 transform: compile
 	@echo "Applying LLVM pass..."
@@ -105,6 +106,7 @@ else
 # Rule to generate LLVM IR from source
 compile: $(OPATH) $(SRCS) $(HEADERS)
 	$(CLANG) -emit-llvm -S $(CFLAGS) $(XCFLAGS) $(SRCS)
+
 # Apply HPSC-CFA LLVM pass
 transform: compile
 	@echo "Applying LLVM pass..."
@@ -112,8 +114,8 @@ transform: compile
 		$(OPT) -S -mode=$(MODE) -passes=hpsc-cfa $(file) -o $(basename $(file))_transformed.ll;)
 
 # Rule to compile LLVM IR into executable
-link: transform
-	$(CLANG) $(addsuffix .ll,$(CORE_FILES)) $(LFLAGS) $(LOUTCMD)
+link: compile
+	$(CLANG) $(addsuffix .ll,$(CORE_FILES)) core_portme.ll -o $(OUTFILE) -lrt
 endif
 
 $(OUTFILE): $(SRCS) $(HEADERS) Makefile core_portme.mak $(EXTRA_DEPENDS) $(FORCE_REBUILD)
