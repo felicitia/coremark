@@ -114,8 +114,8 @@ transform: compile
 		$(OPT) -S -mode=$(MODE) -passes=hpsc-cfa $(file) -o $(basename $(file))_transformed.ll;)
 
 # Rule to compile LLVM IR into executable
-link: compile
-	$(CLANG) $(addsuffix .ll,$(CORE_FILES)) core_portme.ll -o $(OUTFILE) -lrt
+link: transform
+	$(CLANG) $(addsuffix _transformed.ll,$(CORE_FILES)) core_portme.ll -o $(OUTFILE) -lrt
 endif
 
 $(OUTFILE): $(SRCS) $(HEADERS) Makefile core_portme.mak $(EXTRA_DEPENDS) $(FORCE_REBUILD)
