@@ -258,6 +258,7 @@ matrix_sum(ee_u32 N, MATRES *C, MATDAT clipval)
             prev = cur;
         }
     }
+#pragma ft nmr rhs(ret)
     return ret;
 }
 
@@ -276,6 +277,7 @@ matrix_mul_const(ee_u32 N, MATRES *C, MATDAT *A, MATDAT val)
             C[i * N + j] = (MATRES)A[i * N + j] * (MATRES)val;
         }
     }
+#pragma ft vote(C:N*N*sizeof(MATRES))
 }
 
 /* Function: matrix_add_const
@@ -311,6 +313,7 @@ matrix_mul_vect(ee_u32 N, MATRES *C, MATDAT *A, MATDAT *B)
             C[i] += (MATRES)A[i * N + j] * (MATRES)B[j];
         }
     }
+#pragma ft vote(C:N*N*sizeof(MATRES))
 }
 
 /* Function: matrix_mul_matrix
@@ -333,6 +336,7 @@ matrix_mul_matrix(ee_u32 N, MATRES *C, MATDAT *A, MATDAT *B)
             }
         }
     }
+#pragma ft vote(C:N*N*sizeof(MATRES))
 }
 
 /* Function: matrix_mul_matrix_bitextract
@@ -351,8 +355,11 @@ matrix_mul_matrix_bitextract(ee_u32 N, MATRES *C, MATDAT *A, MATDAT *B)
             C[i * N + j] = 0;
             for (k = 0; k < N; k++)
             {
+#pragma ft nmr auto(C)
+                {
                 MATRES tmp = (MATRES)A[i * N + k] * (MATRES)B[k * N + j];
                 C[i * N + j] += bit_extract(tmp, 2, 4) * bit_extract(tmp, 5, 7);
+                }
             }
         }
     }
