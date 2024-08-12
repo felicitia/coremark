@@ -21,6 +21,9 @@ Original Author: Shay Gal-on
    initial parameters, tun t he benchmark and report the results.
 */
 #include "coremark.h"
+#ifdef NMR
+#include "ftlib.h"
+#endif
 
 /* Function: iterate
         Run the benchmark for a specified number of iterations.
@@ -114,6 +117,10 @@ main(void)
 MAIN_RETURN_TYPE
 main(int argc, char *argv[])
 {
+#endif
+#ifdef NMR
+    int nmr_id = 0;	// FIXME: this must be initialized for each nmr process (0, 1, 2)
+    ft_init(nmr_id);
 #endif
     ee_u16       i, j = 0, num_algorithms = 0;
     ee_s16       known_id = -1, total_errors = 0;
@@ -438,5 +445,8 @@ for (i = 0; i < MULTITHREAD; i++)
     /* And last call any target specific code for finalizing */
     portable_fini(&(results[0].port));
 
+#ifdef NMR
+    ft_exit(nmr_id);
+#endif
     return MAIN_RETURN_VAL;
 }
