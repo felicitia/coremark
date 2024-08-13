@@ -59,6 +59,7 @@ endif
 LLVM_BUILD_DIR = /home/yixue/isi-llvm/build
 OPT = $(LLVM_BUILD_DIR)/bin/opt
 CLANG = $(LLVM_BUILD_DIR)/bin/clang
+LLC = $(LLVM_BUILD_DIR)/bin/llc
 MODE = 3
 CFLAGS += -DITERATIONS=$(ITERATIONS)
 
@@ -72,7 +73,7 @@ LOUTCMD = $(OFLAG) $(OUTFILE) $(LFLAGS_END)
 OUTCMD = $(OUTFLAG) $(OUTFILE) $(LFLAGS_END)
 # OUTCMD = -o $(OUTFILE)
 
-HEADERS = coremark.h 
+HEADERS = coremark.h ftlib.h
 CHECK_FILES = $(ORIG_SRCS) $(HEADERS)
 
 $(OPATH):
@@ -84,18 +85,18 @@ $(OPATH)$(PORT_DIR):
 	$(MKDIR) $(OPATH)$(PORT_DIR)
 
 # Rule to generate LLVM IR from source
-compile: $(OPATH) $(SRCS) $(HEADERS)
-	$(CLANG) -emit-llvm -S $(CFLAGS) $(XCFLAGS) $(SRCS)
+# compile: $(OPATH) $(SRCS) $(HEADERS)
+# 	$(CLANG) -emit-llvm -S $(CFLAGS) $(XCFLAGS) $(SRCS)
 
 # Apply HPSC-CFA LLVM pass
-transform: compile
-	@echo "Applying LLVM pass..."
-	$(foreach file,$(addsuffix .ll,$(CORE_FILES)), \
-		$(OPT) -S -mode=$(MODE) -passes=hpsc-cfa $(file) -o $(basename $(file))_transformed.ll;)
+# transform: compile
+# 	@echo "Applying LLVM pass..."
+# 	$(foreach file,$(addsuffix .ll,$(CORE_FILES)), \
+# 		$(OPT) -S -mode=$(MODE) -passes=hpsc-cfa $(file) -o $(basename $(file))_transformed.ll;)
 
 # Rule to compile LLVM IR into executable
-link: transform
-	$(CLANG) $(addsuffix .ll,$(CORE_FILES)) $(LFLAGS) $(LOUTCMD)
+# link: transform
+# 	$(CLANG) $(addsuffix .ll,$(CORE_FILES)) $(LFLAGS) $(LOUTCMD)
 
 # compile: $(OPATH) $(OPATH)$(PORT_DIR) $(OBJS) $(HEADERS) 
 # link: compile 
@@ -109,7 +110,7 @@ compile: $(OPATH) $(SRCS) $(HEADERS)
 
 # Apply HPSC-CFA LLVM pass
 transform: compile
-	@echo "Applying LLVM pass..."
+	@echo "Applying CFA pass..."
 	$(foreach file,$(addsuffix .ll,$(CORE_FILES)), \
 		$(OPT) -S -mode=$(MODE) -passes=hpsc-cfa $(file) -o $(basename $(file))_transformed.ll;)
 
@@ -122,6 +123,19 @@ $(OUTFILE): $(SRCS) $(HEADERS) Makefile core_portme.mak $(EXTRA_DEPENDS) $(FORCE
 	$(MAKE) port_prebuild
 	$(MAKE) link
 	$(MAKE) port_postbuild
+
+.PHONY: testNMR
+testNMR: $(OPATH) $(SRCS) $(HEADERS) ftlib.c
+	$(CLANG) -fPIE -emit-llvm -c $(CFLAGS) $(XCFLAGS) $(SRCS)
+	@echo "Applying NMR pass..."
+	$(foreach file,$(addsuffix .bc,$(CORE_FILES)), \
+		$(OPT) -passes=ft -ft-auto-optimization-level=0 -o $(basename $(file)).bc0 < $(file);)
+	$(foreach file,$(addsuffix .bc0,$(CORE_FILES)), \
+		$(LLC) -relocation-model=pic -filetype=obj -o $(basename $(file)).o $(basename $(file)).bc0;)
+	$(LLC) -relocation-model=pic -filetype=obj -o core_portme.o core_portme.bc
+	$(CLANG) -c -fPIE -o ftlib.o ftlib.c
+	$(CLANG) -o coremarkNMR.exe ftlib.o core_portme.o $(addsuffix .o,$(CORE_FILES)) -lrt
+
 
 .PHONY: rerun
 rerun: 
