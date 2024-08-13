@@ -18,6 +18,7 @@ _Thread_local static int shmid;
 extern void __ft_vote(void * , const int32_t );
 extern void __ft_init(int );
 extern void __ft_exit(int );
+extern void __ft_dummy(void *, int32_t, int32_t);
 
 void (*__ft_voter)() = __ft_vote;
 void (*__ft_votel)() = __ft_vote;
@@ -32,6 +33,8 @@ void (*ft_exit)() = __ft_exit;
 void __ft_auto_start(void * varaddr, const int32_t varsize) {
 };
 void __ft_auto_end(void * varaddr, const int32_t varsize) {
+};
+void __ft_dummy(void * varaddr, int32_t v1, int32_t v2) {
 };
 
 static int vote_init() {
